@@ -371,6 +371,9 @@ mkSubst' args p = do
 -- to find the types of its arguments.
 -- p1 : number of variables in delta
 -- p2 : number of variables in thetai
+-- delta: the type-level telescope (i.e. the telescope being instantiated)
+-- params: parameters used to instantiate delta
+-- theta: the constructor level telescope (i.e. the telescope in which the subst. happens)
 -- This could fail if any constraints are not satisfiable.
 substTele :: forall p1 p2 n.
              Telescope p1 Z    -- delta
@@ -378,9 +381,8 @@ substTele :: forall p1 p2 n.
           -> Telescope p2 p1   -- theta
           -> TcMonad n (Telescope p2 n)
 substTele delta params theta =
-  do let delta' = weakenTeleClosed delta
-     (ss :: Env Term (Plus p1 n) n) <-
-        mkSubst' params (Scoped.scopedSize delta')
+  do (ss :: Env Term (Plus p1 n) n) <-
+        mkSubst' params (Scoped.scopedSize delta)
      s <- scope @LocalName
      let weaken :: Env Term p1 (Plus p1 n)
          weaken = withSNat (size delta) $ weakenER (scope_size s)
@@ -457,15 +459,15 @@ declarePats :: forall p pt n.
 declarePats pats (TCons  (LocalDef x ty) (tele :: Telescope p1 n)) ctx = do
   case axiomPlusZ @p1 of
     Refl -> do
-      (ctx', tms', rf)  <- declarePats pats tele ctx
-      let r1 = shiftRefinement (size pats) (singletonR (x,ty))
+      let r0 = singletonR (x,ty)
       s <- scope @LocalName
+      tele' <- withSNat (scope_size s) $ doSubst @Z (fromRefinement r0) tele
+      (ctx', tms', rf)  <- declarePats pats tele' ctx
+      let r1 = shiftRefinement (size pats) r0
       r' <-
          withSNat (sPlus (size pats) (scope_size s)) $
            joinR r1 rf `Env.whenNothing` [DS "Cannot create refinement"]
       pure (ctx', tms', r')
-      -- TODO: substitute for x in tele'
-      -- pure (ctx', tms')
 declarePats (PCons (p1 :: Pattern p1) (p2 :: PatList Pattern p2))
   (TCons  (LocalDecl x ty1) (tele2 :: Telescope p3 (S n))) ctx = do
     let fact :: Plus p2 (Plus p1 n) :~: Plus p n
