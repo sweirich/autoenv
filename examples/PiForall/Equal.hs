@@ -197,16 +197,14 @@ unify t1 t2 = do
           (Var x, Var y) | x == y -> return Env.emptyR
           (Var y, yty)   |
             Just (Var y') <- strengthenN p (Var y),
-            Just yty' <- strengthenN p yty
-            -> if not (y' `appearsFree` yty')
-                then return (Env.singletonR (y', yty'))
-                else return Env.emptyR
+            Just yty' <- strengthenN p yty,
+            not (y' `appearsFree` yty')
+            -> return (Env.singletonR (y', yty'))
           (yty, Var y)  |
             Just (Var y') <- strengthenN p (Var y),
-            Just yty' <- strengthenN p yty
-            -> if not (y' `appearsFree` yty')
-                then return (Env.singletonR (y', yty'))
-                else return Env.emptyR
+            Just yty' <- strengthenN p yty,
+            not (y' `appearsFree` yty')
+            -> return (Env.singletonR (y', yty'))
           (DataCon n1 a1, DataCon n2 a2)
             | n1 == n2 -> goArgs p a1 a2
           (TyCon s1 tms1, TyCon s2 tms2)
