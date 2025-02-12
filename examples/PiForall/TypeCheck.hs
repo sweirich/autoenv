@@ -257,7 +257,7 @@ checkType tm ty ctx = do
             -- check the branch
             push @LocalName pat $ checkType body' ty3 ctx''
       mapM_ checkAlt alts
-      exhaustivityCheck sty (map getSomePat alts) ctx
+      exhaustivityCheck scrut sty (map getSomePat alts) ctx
 
     -- c-infer
     _ -> do
@@ -655,9 +655,9 @@ data Some (p :: Nat -> Type) where Some :: forall x p. SNatI x => (p x) -> Some 
 -- code looks up the data constructors for that type and makes sure that
 -- there are patterns for each one.
 
-exhaustivityCheck :: forall n. Typ n -> [Some Pattern] -> Context n -> TcMonad n ()
-exhaustivityCheck ty (Some (PatVar x) : _) ctx = return ()
-exhaustivityCheck ty pats ctx = do
+exhaustivityCheck :: forall n. Term n -> Typ n -> [Some Pattern] -> Context n -> TcMonad n ()
+exhaustivityCheck scrut ty (Some (PatVar x) : _) ctx = return ()
+exhaustivityCheck scrut ty pats ctx = do
   (tcon, tys) <- Equal.ensureTCon ty
   DataDef (delta :: Telescope p1 Z) sort datacons <- Env.lookupTCon tcon
   let   loop :: [Some Pattern] -> [ConstructorDef p1] -> TcMonad n ()
@@ -685,11 +685,14 @@ exhaustivityCheck ty pats ctx = do
         checkImpossible :: [ConstructorDef p1] -> TcMonad n [DataConName]
         checkImpossible [] = return []
         checkImpossible (ConstructorDef dc tele : rest) = do
+          scrut' <- Equal.whnf scrut
           this <-
             ( do
                 tele' <- substTele delta tys tele
                 tcTypeTele tele' ctx
-                return [dc]
+                case scrut' of
+                  DataCon dc' _ | dc /= dc' -> return []
+                  _ -> return [dc]
               )
               `catchError` (\_ -> return [])
           others <- checkImpossible rest
