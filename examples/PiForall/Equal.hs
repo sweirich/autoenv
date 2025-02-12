@@ -60,7 +60,7 @@ equate t1 t2 = do
           matchBr (Branch bnd1) (Branch bnd2) =
               Pat.unbind bnd1 $ \p1 a1 ->
               Pat.unbind bnd2 $ \p2 a2 -> do
-                Refl <- patEq p1 p2 `Env.whenNothing` 
+                Refl <- patEq p1 p2 `Env.whenNothing`
                         [DS "Cannot match branches in", DD n1, DS "and", DD n2]
                 push @LocalName p1 (equate a1 a2)
         zipWithM_ matchBr brs1 brs2
@@ -95,20 +95,20 @@ equateArgs a1 a2  = do
 ensurePi :: Typ n -> TcMonad n (Typ n, L.Bind Term Typ n)
 ensurePi aty = do
   nf <- whnf aty
-  case nf of 
+  case nf of
     (Pi tyA bnd) -> return (tyA, bnd)
     _ -> Env.err [DS "Expected a function type but found ", DD aty]
 
 ensureEq :: Typ n -> TcMonad n (Term n, Term n)
 ensureEq aty = do
   nf <- whnf aty
-  case nf of 
+  case nf of
     (TyEq a b) -> return (a,b)
     _ -> Env.err [DS "Expected an equality type but found", DD nf]
 
--- | Ensure that the given type 'ty' is some tycon applied to 
+-- | Ensure that the given type 'ty' is some tycon applied to
 --  params (or could be normalized to be such)
--- Throws an error if this is not the case 
+-- Throws an error if this is not the case
 ensureTCon :: Term n -> TcMonad n (TyConName, [Term n])
 ensureTCon aty = do
   nf <- whnf aty
@@ -117,7 +117,7 @@ ensureTCon aty = do
     _ -> Env.err [DS "Expected a data type but found", DD nf]
 
 -------------------------------------------------------
--- | Convert a term to its weak-head normal form.             
+-- | Convert a term to its weak-head normal form.
 -- | TODO: add explicit environment (?)
 -- But need to find out the types of every binder
 whnf :: forall n. Term n -> TcMonad n (Term n)
@@ -128,9 +128,9 @@ whnf (Global y) = (do
 
 whnf (Var x)  = do
   -- maybeDef <- Env.lookupDef x
-  -- case maybeDef of 
-  --  (Just d) -> whnf d 
-  --  _ -> 
+  -- case maybeDef of
+  --  (Just d) -> whnf d
+  --  _ ->
           return (Var x)
 
 whnf (App t1 t2)  = do
@@ -140,7 +140,7 @@ whnf (App t1 t2)  = do
       whnf (L.instantiate bnd t2)
     _ -> do
       return (App nf t2)
--- ignore/remove type annotations and source positions when normalizing  
+-- ignore/remove type annotations and source positions when normalizing
 whnf (Ann tm _)  = whnf tm
 whnf (Pos _ tm)  = whnf tm
 whnf (Let rhs bnd) = do
@@ -176,14 +176,14 @@ instance Named LocalName (SNat p) where
     go SZ = VNil
     go (SS q) = LocalName ("_" ++ show (toInt (SS q))) ::: go q
 
--- | 'Unify' the two terms, producing a list of definitions that 
+-- | 'Unify' the two terms, producing a list of definitions that
 -- must hold for the terms to be equal
 -- If the terms are already equal, succeed with an empty list
 -- If there is an obvious mismatch, fail with an error
--- If either term is "ambiguous" (i.e. neutral), give up and 
+-- If either term is "ambiguous" (i.e. neutral), give up and
 -- succeed with an empty list
 unify :: forall n. Term n -> Term n -> TcMonad n (Refinement Term n)
-unify t1 t2 = do 
+unify t1 t2 = do
      s <- scope @LocalName
      withSNat (scope_size s) $ go SZ t1 t2
   where
@@ -197,16 +197,14 @@ unify t1 t2 = do
           (Var x, Var y) | x == y -> return Env.emptyR
           (Var y, yty)   |
             Just (Var y') <- strengthenN p (Var y),
-            Just yty' <- strengthenN p yty
-            -> if not (y' `appearsFree` yty')
-                then return (Env.singletonR (y', yty'))
-                else return Env.emptyR
+            Just yty' <- strengthenN p yty,
+            not (y' `appearsFree` yty')
+            -> return (Env.singletonR (y', yty'))
           (yty, Var y)  |
             Just (Var y') <- strengthenN p (Var y),
-            Just yty' <- strengthenN p yty
-            -> if not (y' `appearsFree` yty')
-                then return (Env.singletonR (y', yty'))
-                else return Env.emptyR
+            Just yty' <- strengthenN p yty,
+            not (y' `appearsFree` yty')
+            -> return (Env.singletonR (y', yty'))
           (DataCon n1 a1, DataCon n2 a2)
             | n1 == n2 -> goArgs p a1 a2
           (TyCon s1 tms1, TyCon s2 tms2)
@@ -239,7 +237,7 @@ unify t1 t2 = do
 
 
 -- | Is a term "ambiguous" when it comes to unification?
--- In general, elimination forms are ambiguous because there are multiple 
+-- In general, elimination forms are ambiguous because there are multiple
 -- solutions.
 amb :: Term n -> Bool
 amb (App t1 t2) = True
@@ -257,7 +255,7 @@ patternMatches :: forall p n. Term n -> Pattern p
 patternMatches e (PatVar _) = return (oneE e)
 patternMatches (DataCon n args) (PatCon l ps)
   | l == n = patternMatchList args ps
-patternMatches nf pat = 
+patternMatches nf pat =
   Env.err [DS "arg", DD nf, DS "doesn't match pattern", DC pat]
 
 patternMatchList :: forall p n. [Term n] -> PatList Pattern p -> TcMonad n (Env Term p n)

@@ -179,7 +179,7 @@ instance Display (Telescope m n) where
     dx <- display (Var x)
     dtm <- display tm
     dtele <- display tele
-    return $ PP.brackets (dx <+> PP.equals <+> dtm)
+    return $ PP.brackets (dx <+> PP.equals <+> dtm) <+> dtele
 
 instance Display (Refinement Term n) where
   display (Refinement r) di = 
