@@ -69,8 +69,8 @@ instance MonadScoped LocalName TcMonad where
         TcEnv { globals = globals env,
                 hints = hints env,
                 sourceLocation = sourceLocation env,
-                env_scope = extendScope pat (env_scope env), 
-                env_refinement = shiftRefinement (size pat) (env_refinement env)
+                env_scope = extendScope pat (env_scope env),
+                env_refinement = shift (size pat) (env_refinement env)
               })
 
 -- | Initial environment
@@ -78,8 +78,8 @@ emptyEnv :: TcEnv Z
 emptyEnv = TcEnv {
   globals = prelude,
   hints = [],
-  sourceLocation = [], 
-  env_scope = emptyScope, 
+  sourceLocation = [],
+  env_scope = emptyScope,
   env_refinement = emptyR
 }
 
@@ -101,7 +101,7 @@ lookupGlobalTy v = do
         case mty of
           Just ty -> return ty
           Nothing -> err [ DS $ "The variable " ++ show v ++ " was not found" ]
-            
+
 lookupGlobalDef :: GlobalName -> TcMonad n (Term n)
 lookupGlobalDef v = do
     env <- ask
@@ -174,40 +174,40 @@ lookupDCon c tname = do
 
 --------------------------------------------------------------------
 
--- | A local context is an environment that binds n variables (and may also 
--- include local definitions). 
+-- | A local context is an environment that binds n variables (and may also
+-- include local definitions).
 type Context a = Ctx Term a
 
 weakenDef :: SNat n -> (Fin p, Term p) -> (Fin (n + p), Term (n + p))
 weakenDef m (x,y) = (Fin.weakenFin m x, applyE @Term (weakenE' m) y)
 
 emptyContext :: Context N0
-emptyContext = emptyC 
+emptyContext = emptyC
 
 
 {-
 getLocalCtx :: forall n. SNatI n => TcMonad (Ctx Term n)
-getLocalCtx = do 
+getLocalCtx = do
   c <- asks ctx
-  case c of 
+  case c of
     Context _ (t :: Ctx Term p) _ ->
-         case testEquality @_ @n snat (snat :: SNat p) of 
+         case testEquality @_ @n snat (snat :: SNat p) of
            Just Refl -> return t
            Nothing -> err [DS "invalid scope"]
 
 getLocalDefs :: forall n. SNatI n => TcMonad [(Fin n, Term n)]
-getLocalDefs = do 
+getLocalDefs = do
   c <- asks ctx
-  case c of 
+  case c of
     Context _ _ (t :: [(Fin p, Term p)]) ->
-         case testEquality @_ @n snat (snat :: SNat p) of 
+         case testEquality @_ @n snat (snat :: SNat p) of
            Just Refl -> return t
            Nothing -> err [DS "invalid scope"]
 -}
 
 {-
 lookupDef :: Fin m -> Context m n -> TcMonad (Maybe (Term n))
-lookupDef x (Context _ _ gamma) = go gamma 
+lookupDef x (Context _ _ gamma) = go gamma
     where
       go [] = return Nothing
       go ((y,u):t) = if x == y then return (Just u) else go t
@@ -215,7 +215,7 @@ lookupDef x (Context _ _ gamma) = go gamma
 
 {-
 -- | Extend with new definitions
-extendDecls :: [(Fin n, Term n)] -> Context m n -> Context m n 
+extendDecls :: [(Fin n, Term n)] -> Context m n -> Context m n
 extendDecls d c@(Context gamma defs) = Context n gamma (d ++ defs)
 -}
 
@@ -228,7 +228,7 @@ lookupTy x gamma = applyEnv gamma x
 -- | Extend the context with a new declaration
 extendTy :: Typ n -> Context n -> Context (S n)
 extendTy d gamma = gamma +++ d
-  
+
 extendDef :: Fin n -> Term n -> Context n -> Context n
 extendDef d = error "TODO: local definitions unsupported"
 
@@ -237,7 +237,7 @@ extendLocal (LocalDecl x t) k ctx = k (extendTy t ctx)
 extendLocal (LocalDef x u) k ctx = error "TODO: local definitions unsupported"
 
 --------------------------------------------------------------------
--- Source locations 
+-- Source locations
 
 -- | Marked locations in the source code
 data SourceLocation where
@@ -287,7 +287,7 @@ warn d = do
   s <- scope
   liftIO $ putStrLn $ "warning: " ++ show (sep $ map (`scopedDisplay` s) d)
 
--- | Print an error, making sure that the scope lines up 
+-- | Print an error, making sure that the scope lines up
 err :: [D n] -> TcMonad n b
 err d = do
   loc <- getSourceLocation
@@ -299,7 +299,7 @@ extendErr :: TcMonad n a -> [D n] -> TcMonad n a
 extendErr ma d =
   ma `catchError` \(Err ps msg) -> do
     s <- scope
-    let msg' = sep $ map (`scopedDisplay` s) d 
+    let msg' = sep $ map (`scopedDisplay` s) d
     throwError $ Err ps (vcat [msg, msg'])
 
 whenNothing :: Maybe a -> [D n] -> TcMonad n a

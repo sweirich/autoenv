@@ -14,7 +14,7 @@ module LC where
 
 import AutoEnv
 import AutoEnv.Bind.Single
-import Data.Fin 
+import Data.Fin
 import Data.Vec qualified
 
 -- | Datatype of well-scoped lambda-calculus expressions
@@ -109,6 +109,8 @@ instance SubstVar Exp where
 -- via recursion. The library includes a type class instance for
 -- the Bind type which handles the variable lifting needed under
 -- the binder.
+instance Shiftable Exp where
+  shift = shiftFromApplyE @Exp
 instance Subst Exp Exp where
   applyE :: Env Exp n m -> Exp n -> Exp m
   applyE r (Var x) = applyEnv r x
@@ -253,8 +255,8 @@ evalEnv r (Lam b) = applyE r (Lam b)
 evalEnv r (App e1 e2) =
   let v = evalEnv r e2
    in case evalEnv r e1 of
-        Lam b -> 
-          instantiateWith b v evalEnv 
+        Lam b ->
+          instantiateWith b v evalEnv
           -- unbindWith b (\r' e' -> evalEnv (v .: r') e')
         t -> App t v
 

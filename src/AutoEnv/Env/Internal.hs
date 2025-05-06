@@ -66,12 +66,12 @@ applyEnv (Cons _ty s) (FS x) = applyEnv s x
 applyEnv (s1 :<> s2) x = applyE s2 (applyEnv s1 x)
 {-# INLINEABLE applyEnv #-}
 
--- | Build an optimized version of applyE. 
+-- | Build an optimized version of applyE.
 -- Checks to see if we are applying the identity substitution first.
 applyOpt :: (Env v n m -> c n -> c m) -> (Env v n m -> c n -> c m)
 applyOpt f (Inc SZ) x = x
 applyOpt f (Weak SZ) x = x
-applyOpt f (WeakR SZ) (x :: c m) = 
+applyOpt f (WeakR SZ) (x :: c m) =
   case axiomPlusZ @m of Refl -> x
 applyOpt f r x = f r x
 {-# INLINEABLE applyOpt #-}
@@ -85,10 +85,10 @@ zeroE :: Env v Z n
 zeroE = Zero
 {-# INLINEABLE zeroE #-}
 
--- make the bound bigger, on the right, but do not change any indices. 
+-- make the bound bigger, on the right, but do not change any indices.
 -- this is an identity function
 weakenER :: forall m v n. SNat m -> Env v n (n + m)
-weakenER = WeakR 
+weakenER = WeakR
 {-# INLINEABLE weakenER #-}
 
 -- make the bound bigger, on the left, but do not change any indices.
@@ -105,7 +105,7 @@ shiftNE = Inc
 -- | `cons` -- extend an environment with a new mapping
 -- for index '0'. All existing mappings are shifted over.
 (.:) :: v m -> Env v n m -> Env v (S n) m
-(.:) = Cons 
+(.:) = Cons
 {-# INLINEABLE (.:) #-}
 
 
@@ -120,24 +120,24 @@ tail x = shiftNE s1 .>> x
 {-# INLINEABLE (.>>) #-}
 
 -- | smart constructor for composition
-comp :: forall a m n p. SubstVar a => 
+comp :: forall a m n p. SubstVar a =>
          Env a m n -> Env a n p -> Env a m p
 comp Zero s = Zero
-comp (Weak (k1 :: SNat m1)) (Weak (k2 :: SNat m2))  = 
+comp (Weak (k1 :: SNat m1)) (Weak (k2 :: SNat m2))  =
   case axiomAssoc @m2 @m1 @m of
     Refl -> Weak (sPlus k2 k1)
 comp (Weak SZ) s = s
 comp s (Weak SZ) = s
-comp (WeakR (k1 :: SNat m1)) (WeakR (k2 :: SNat m2))  = 
+comp (WeakR (k1 :: SNat m1)) (WeakR (k2 :: SNat m2))  =
   case axiomAssoc @m @m1 @m2 of
     Refl -> WeakR (sPlus k1 k2)
 comp (WeakR SZ) s =
-  case axiomPlusZ @m of 
+  case axiomPlusZ @m of
     Refl -> s
-comp s (WeakR SZ) = 
-  case axiomPlusZ @n of 
+comp s (WeakR SZ) =
+  case axiomPlusZ @n of
     Refl -> s
-comp (Inc (k1 :: SNat m1)) (Inc (k2 :: SNat m2))  = 
+comp (Inc (k1 :: SNat m1)) (Inc (k2 :: SNat m2))  =
   case axiomAssoc @m2 @m1 @m of
     Refl -> Inc (sPlus k2 k1)
 comp s (Inc SZ) = s
@@ -152,14 +152,14 @@ comp s1 s2 = s1 :<> s2
 up :: (SubstVar v) => Env v m n -> Env v (S m) (S n)
 up (Inc SZ) = Inc SZ
 up (Weak SZ) = Weak SZ
-up (WeakR SZ) = WeakR SZ 
+up (WeakR SZ) = WeakR SZ
 up e = var Fin.f0 .: comp e (Inc s1)
 {-# INLINEABLE up #-}
 
 -- | mapping operation for range of the environment
 transform :: (forall m. a m -> b m) -> Env a n m -> Env b n m
 transform f Zero = Zero
-transform f (Weak x) = Weak x 
+transform f (Weak x) = Weak x
 transform f (WeakR x) = WeakR x
 transform f (Inc x) = Inc x
 transform f (Cons a r) = Cons (f a) (transform f r)

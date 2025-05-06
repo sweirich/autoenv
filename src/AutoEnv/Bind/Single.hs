@@ -2,27 +2,33 @@
 -- with no other information stored with the binder
 -- (This is a specialization of n-ary binding.)
 module AutoEnv.Bind.Single
-  (module AutoEnv.Classes,
-  Bind(..),
-  bind,
-  unbind,
-  getBody,
-  instantiate, 
-  unbindWith,
-  instantiateWith,
-  applyUnder) where
+  ( module AutoEnv.Classes,
+    Bind (..),
+    bind,
+    unbind,
+    unbindl,
+    getBody,
+    instantiate,
+    unbindWith,
+    instantiateWith,
+    applyUnder,
+  )
+where
 
 import AutoEnv
-import AutoEnv.Classes
 import AutoEnv.Bind.PatN
+import AutoEnv.Classes
 
 type Bind v c n = Bind1 v c n
 
 bind :: (Subst v c) => c (S n) -> Bind v c n
 bind = bind1
 
-unbind :: forall v c n d. (Subst v c) => Bind v c n -> (c (S n) -> d) -> d
+unbind :: forall v c n d. (SNatI n, Subst v c) => Bind v c n -> ((SNatI (S n)) => c (S n) -> d) -> d
 unbind = unbind1
+
+unbindl :: (Subst v c) => Bind v c n -> c (S n)
+unbindl = unbindl1
 
 getBody :: forall v c n. (Subst v c) => Bind v c n -> c (S n)
 getBody = getBody1
@@ -38,8 +44,6 @@ instantiateWith = instantiateWith1
 
 applyUnder :: (Subst v c2) => (forall m n. Env v m n -> c1 m -> c2 n) -> Env v n1 n2 -> Bind v c1 n1 -> Bind v c2 n2
 applyUnder = applyUnder1
-
-
 
 {-
 ----------------------------------------------------------------
@@ -109,15 +113,13 @@ applyUnder ::
 applyUnder f r2 (Bind r1 t) =
   bind (f (up (r1 .>> r2)) t)
 
-instance (SubstVar v, Subst v v, Subst v c, Strengthen c) => 
+instance (SubstVar v, Subst v v, Subst v c, Strengthen c) =>
   Strengthen (Bind v c) where
 
-  strengthenRec :: forall k m n v c. (SubstVar v, Subst v v, Subst v c, Strengthen c) => 
+  strengthenRec :: forall k m n v c. (SubstVar v, Subst v v, Subst v c, Strengthen c) =>
     SNat k -> SNat m -> SNat n -> Bind v c (k + (m + n)) -> Maybe (Bind v c (k + n))
-  strengthenRec k m n bnd = 
+  strengthenRec k m n bnd =
       bind <$> strengthenRec (SNat.succ k) m n (unbind bnd)
-                  
-                  
 
 -- | Create a substitution that instantiates a binder
 -- with `a` and shifts at the same time. This is useful for

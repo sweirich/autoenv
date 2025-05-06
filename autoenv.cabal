@@ -15,12 +15,12 @@ extra-source-files:
     ChangeLog.md
 
 common common-stanza
-  ghc-options:         
-     -Wno-type-defaults 
+  ghc-options:
+     -Wno-type-defaults
      -fwarn-incomplete-patterns
   build-depends:
       base >=4.15
-    , HUnit 
+    , HUnit
     , QuickCheck
     , containers
     , filepath
@@ -48,7 +48,7 @@ common common-stanza
     , UndecidableInstances
     , FunctionalDependencies
     , ViewPatterns
-    
+
 
 library
   import:
@@ -67,6 +67,7 @@ library
       , AutoEnv.Env.Functional
       , AutoEnv.Env.Vector
       , AutoEnv.MonadScoped
+      , AutoEnv.DependentScope
       , AutoEnv.Bind.Single
       , AutoEnv.Bind.Local
       , AutoEnv.Bind.PatN
@@ -75,9 +76,20 @@ library
       , Data.SNat
       , Data.Fin
       , Data.Vec
-      , Data.LocalName    
-      , Data.Scoped.List  
-      , LC
+      , Data.LocalName
+      , Data.Scoped.Const
+      , Data.Scoped.List
+      , Data.Scoped.Maybe
+      , Data.Scoped.Telescope
+  hs-source-dirs: src
+
+library autoenv-examples
+  import:
+    common-stanza
+  build-depends:
+    autoenv
+  exposed-modules:
+        LC
       , LCLet
       , PTS
       , Pat
@@ -94,9 +106,4 @@ library
       , PiForall.ScopeCheck
       , PiForall.Modules
       , PiForall.TypeCheck
-  hs-source-dirs:
-      src
-      , examples
-
-
-
+  hs-source-dirs: examples

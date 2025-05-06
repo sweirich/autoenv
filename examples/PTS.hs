@@ -16,7 +16,7 @@ import Data.Vec qualified as Vec
 -- into the same syntactic class.
 
 data Exp (n :: Nat) where
-  -- | sort 
+  -- | sort
   Star :: Exp n
   -- | dependent type `Pi x : A . B`
   Pi :: Exp n -> Bind1 Exp Exp n -> Exp n
@@ -26,12 +26,12 @@ data Exp (n :: Nat) where
   Lam :: Exp n -> Bind1 Exp Exp n -> Exp n
   -- | application
   App :: Exp n -> Exp n -> Exp n
-  -- | dependent pair `Sigma x:A . B` 
+  -- | dependent pair `Sigma x:A . B`
   Sigma :: Exp n -> Bind1 Exp Exp n -> Exp n
   -- | construct a pair, third argument is type annotation
   Pair :: Exp n -> Exp n -> Exp n -> Exp n
   -- | elimination form for pairs. `split e1 as (x,y) in e2`
-  -- Binds two variables to 
+  -- Binds two variables to
   -- the two components of the pair
   Split :: Exp n -> Bind2 Exp Exp n -> Exp n
 
@@ -40,6 +40,9 @@ data Exp (n :: Nat) where
 instance SubstVar Exp where
   var :: Fin n -> Exp n
   var = Var
+
+instance Shiftable Exp where
+  shift = shiftFromApplyE @Exp
 
 instance Subst Exp Exp where
   applyE :: Env Exp n m -> Exp n -> Exp m
@@ -362,7 +365,7 @@ data Err where
   PiExpected :: Exp n -> Err
   SigmaExpected :: Exp n -> Err
   VarEscapes :: Exp n -> Err
-   
+
 deriving instance (Show Err)
 
 equate :: (MonadError Err m) => Exp n -> Exp n -> m ()

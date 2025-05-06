@@ -1,6 +1,6 @@
 -- A port of https://github.com/sweirich/pi-forall
 -- This version distinguishes between global and local names
--- Global names are strings (which must be unique). Local names 
+-- Global names are strings (which must be unique). Local names
 -- are represented by indices.
 module PiForall.Syntax where
 
@@ -51,13 +51,13 @@ data Term (n :: Nat)
   | -- | Equality type  `a = b`
     TyEq (Term n) (Term n)
   | -- | Proof of equality `Refl`
-    TmRefl 
+    TmRefl
   | -- | equality type elimination  `subst a by pf`
-    Subst (Term n) (Term n) 
+    Subst (Term n) (Term n)
   | -- | witness to an equality contradiction
     Contra (Term n)
   | TrustMe
-  | PrintMe 
+  | PrintMe
 
 -- | Patterns (without embedded type annotations)
 -- `p` is the number of variables bound by the pattern
@@ -80,17 +80,17 @@ data Local p n where
   LocalDecl :: LocalName -> Typ n -> Local N1 n -- binding assumption
   LocalDef  :: Fin n -> Term n -> Local N0 n -- nonbinding assumption
 
-type Telescope = Scoped.TeleList Local 
+type Telescope = Scoped.TeleList Local
 
 -- | Datatype definitions
 data DataDef = forall n.
   DataDef
-  { 
+  {
     data_delta :: Telescope n Z,
     data_sort :: Typ Z,
     data_constructors :: [ConstructorDef n]
   }
-  
+
 
 -- | Data constructor definitions, in the scope of the parameters
 -- of the datatype
@@ -101,7 +101,7 @@ data ConstructorDef n = forall m.
   }
 
 -- A data constructor paired with the telescope of its data type
-data ScopedConstructorDef = forall n. 
+data ScopedConstructorDef = forall n.
   ScopedConstructorDef (Telescope n Z) (ConstructorDef n)
 
 -- | The names of all type/data constructors used in the module
@@ -115,7 +115,7 @@ data ModuleEntry
   = ModuleDecl { declName :: GlobalName, declType :: Typ Z }
   | ModuleDef  { declName :: GlobalName, declTerm :: Term Z }
   | ModuleData { declName :: GlobalName, declData :: DataDef }
-  
+
 -- | module names
 type ModuleName = String
 
@@ -127,12 +127,12 @@ data Module = Module
     moduleEntries :: [ModuleEntry],
     moduleConstructors :: ConstructorNames
   }
-  
--- | References to other modules (brings their declarations and 
+
+-- | References to other modules (brings their declarations and
 -- definitions into the global scope)
 newtype ModuleImport = ModuleImport ModuleName
   deriving (Show, Eq, Ord)
-  
+
 -------------------------------------------------------
 
 -- * Definitions related to datatypes
@@ -171,7 +171,7 @@ unPosFlaky t = Maybe.fromMaybe (newPos "unknown location" 0 0) (unPos t)
 class (Sized (pat p), Size (pat p) ~ p) => PatSize pat p
 instance (Sized (pat p), Size (pat p) ~ p) => PatSize pat p
 
--- | lists of patterns where variables at each position bind 
+-- | lists of patterns where variables at each position bind
 -- later in the pattern
 data PatList (pat :: Nat -> Type) p where
   PNil :: PatList pat N0
@@ -181,19 +181,19 @@ data PatList (pat :: Nat -> Type) p where
 instance (forall n. Sized (pat n)) => Sized (PatList pat p) where
     type Size (PatList pat p) = p
     size PNil = s0
-    size (PCons (p1 :: pat p1) (p2 :: PatList pat p2)) = 
+    size (PCons (p1 :: pat p1) (p2 :: PatList pat p2)) =
         sPlus @p2 @(Size (pat p1)) (size p2) (size p1)
 
 instance (forall p. Named (pat p)) => Named (PatList pat p) where
   names :: PatList pat p -> Vec p LocalName
   names PNil = VNil
-  names (PCons (p1 :: pat p1) (ps :: PatList pat ps)) = 
+  names (PCons (p1 :: pat p1) (ps :: PatList pat ps)) =
     let test :: Size (pat p1) :~: p1
         test = Refl
     in
       Vec.append @ps @(Size (pat p1)) (names ps) (names p1)
 
-instance (forall p1 p2. PatEq (pat p1) (pat p2)) => 
+instance (forall p1 p2. PatEq (pat p1) (pat p2)) =>
       PatEq (PatList pat p1) (PatList pat p2) where
   patEq :: PatList pat p1 -> PatList pat p2 -> Maybe (p1 :~: p2)
   patEq PNil PNil = Just Refl
@@ -247,6 +247,9 @@ instance Named LocalName (Local p n) where
 instance SubstVar Term where
   var = Var
 
+instance Shiftable Term where
+  shift = shiftFromApplyE @Term
+
 instance Subst Term Term where
   applyE r TyType = TyType
   applyE r (Lam bnd) = Lam (applyE r bnd)
@@ -265,21 +268,27 @@ instance Subst Term Term where
   applyE r (Subst a b) = Subst (applyE r a) (applyE r b)
   applyE r (Contra p) = Contra (applyE r p)
   applyE r TrustMe = TrustMe
-  applyE r PrintMe = PrintMe 
+  applyE r PrintMe = PrintMe
+
+instance Shiftable Match where
+  shift = shiftFromApplyE @Term
 
 instance Subst Term Match where
   applyE r (Branch (b :: Pat.Bind Term Term (Pattern p) n)) =
     Branch (applyE r b)
 
--- substitution could fail if the constraints in the 
--- telescope are not satisifiable. So we define a 
--- special purpose substitution operation for that 
+-- substitution could fail if the constraints in the
+-- telescope are not satisifiable. So we define a
+-- special purpose substitution operation for that
 -- called doSubst in TypeCheck
 
+instance Shiftable (Local p) where
+  shift = shiftFromApplyE @Term
+
 instance Subst Term (Local p) where
-  applyE r (LocalDecl ln t) = 
+  applyE r (LocalDecl ln t) =
     LocalDecl ln (applyE r t)
-  applyE r (LocalDef x u) = 
+  applyE r (LocalDef x u) =
     case applyE r (Var x) of
       Var y -> LocalDef y (applyE r u)
       _ -> error "TODO! can only rename LocalDefs"
@@ -340,7 +349,7 @@ weaken' :: SNat m -> Term n -> Term (m + n)
 weaken' m = applyE @Term (weakenE' m)
 
 -- AXIOM: no need to do anything with terms that are already closed
-weakenClosed :: Term Z -> Term m 
+weakenClosed :: Term Z -> Term m
 weakenClosed = unsafeCoerce
 
 -- AXIOM:
@@ -442,10 +451,10 @@ instance (Eq (Term n)) => Eq (Local.Bind Term Term n) where
 
 {-
 eqDef :: DataDef
-eqDef = 
-  DataDef 
-  { 
-    data_delta = 
+eqDef =
+  DataDef
+  {
+    data_delta =
         LocalDecl (LocalName "A")  TyType <:>  -- "A"
         LocalDecl (LocalName "a1") (Var f0) <:>
         LocalDecl (LocalName "a2") (Var f1) <:> TNil,  -- "B"
@@ -454,19 +463,19 @@ eqDef =
   }
 
 reflCon :: ConstructorDef N3
-reflCon = 
+reflCon =
   ConstructorDef
   { con_name = "Refl",
-    con_theta = 
+    con_theta =
       LocalDef f0 (Var f1) <:> TNil -- "a1 = a2"
   }
   -}
 
 sigmaDef :: DataDef
-sigmaDef = 
+sigmaDef =
   DataDef
-  { 
-    data_delta = 
+  {
+    data_delta =
       LocalDecl @N0 (LocalName "A") TyType <:>
       LocalDecl @N1 (LocalName "B") (Pi (Var f0) (Local.bind (LocalName "x") TyType)) <:> TNil,
     data_sort = TyType,
@@ -474,11 +483,11 @@ sigmaDef =
   }
 
 prodCon :: ConstructorDef N2
-prodCon = 
-  ConstructorDef 
+prodCon =
+  ConstructorDef
   { con_name = "Prod",
-    con_theta = 
-    LocalDecl (LocalName "a") (Var f1) 
+    con_theta =
+    LocalDecl (LocalName "a") (Var f1)
     <:> LocalDecl (LocalName "b")
          (App (Var f1) (Var f0))
     <:> TNil
@@ -488,7 +497,7 @@ prodCon =
 unitDef :: DataDef
 unitDef =
   DataDef
-    { 
+    {
       data_delta = TNil,
       data_sort = TyType,
       data_constructors = [unitCon]
@@ -504,7 +513,7 @@ unitCon =
 boolDef :: DataDef
 boolDef =
   DataDef
-    { 
+    {
       data_delta = TNil,
       data_sort = TyType,
       data_constructors = [boolCon False, boolCon True]
@@ -516,9 +525,9 @@ boolCon b = ConstructorDef {con_name = show b, con_theta = TNil}
 eitherDef :: DataDef
 eitherDef =
   DataDef
-    { 
-      data_delta = 
-          LocalDecl (LocalName "A") TyType 
+    {
+      data_delta =
+          LocalDecl (LocalName "A") TyType
           <:> LocalDecl (LocalName "B") TyType
           <:> TNil,
       data_sort = TyType,
@@ -528,7 +537,7 @@ eitherDef =
 eitherLeft :: ConstructorDef N2
 eitherLeft =
   ConstructorDef
-    { 
+    {
       con_name = "Left",
       con_theta = LocalDecl (LocalName "a") (Var f0) <:> TNil
     }
@@ -536,9 +545,9 @@ eitherLeft =
 eitherRight :: ConstructorDef N2
 eitherRight =
   ConstructorDef
-    { 
+    {
       con_name = "Right",
-      con_theta = 
+      con_theta =
         LocalDecl (LocalName "b") (Var f1) <:> TNil
     }
 
@@ -550,9 +559,9 @@ prelude = [ModuleData "Unit" unitDef,
 
 
 initialConstructorNames :: ConstructorNames
-initialConstructorNames = 
+initialConstructorNames =
   foldr g (ConstructorNames Set.empty Set.empty) prelude where
-    g (ModuleData dn (DataDef _ _ dc)) cn = 
+    g (ModuleData dn (DataDef _ _ dc)) cn =
       ConstructorNames {
         tconNames = Set.insert dn(tconNames cn),
         dconNames = Set.union (Set.fromList (map con_name dc)) (dconNames cn)

@@ -5,6 +5,6 @@ newtype LocalName = LocalName {name :: String}
 
 instance Show LocalName where
   show (LocalName x) = x
-  
+
 internalName :: LocalName
 internalName = LocalName "_internal"

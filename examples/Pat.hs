@@ -31,10 +31,10 @@ import Data.Vec qualified as Vec
 
 ----------------------------------------------
 
--- The untyped lambda calculus extended with 
--- symbols ("con"stants) and pattern matching 
--- expression (case) 
--- A constant applied to any number of arguments 
+-- The untyped lambda calculus extended with
+-- symbols ("con"stants) and pattern matching
+-- expression (case)
+-- A constant applied to any number of arguments
 -- is a value
 data Exp (n :: Nat) where
   Var :: Fin n -> Exp n
@@ -43,7 +43,7 @@ data Exp (n :: Nat) where
   Con :: String -> Exp n
   -- ^ constant (or symbol) like 'cons or 'nil
   Case :: Exp n -> [Branch n] -> Exp n
-   
+
 
 -- Each branch in a case expression is a pattern binding,
 -- i.e. a data structure that binds m variables in some
@@ -75,11 +75,11 @@ data ConApp (m :: Nat) where
 
 -- Any type that is used as a pattern must be an
 -- instance of the `Sized` type class, so that the library
--- can determine the number of binding variables both 
+-- can determine the number of binding variables both
 -- statically and dynamically.
 
 -- The `Pat` type tells us how many variables are bound
--- the pattern with the index `n`. We can also recover 
+-- the pattern with the index `n`. We can also recover
 -- that number from the pattern itself by counting the number
 -- of occurrences of `PVar`.
 
@@ -88,7 +88,7 @@ instance Sized (Pat m) where
 
   size :: Pat m -> SNat (Size (Pat m))
   size PVar = s1
-  size (PHead p) = size p 
+  size (PHead p) = size p
 
 
 instance Sized (ConApp m) where
@@ -97,11 +97,11 @@ instance Sized (ConApp m) where
   size (PApp p1 p2) = sPlus (size p1) (size p2)
   size (PCon s) = s0
 
--- NOTE: we could drop `size` from the type class 
+-- NOTE: we could drop `size` from the type class
 -- `Sized` by requiring `SNatI (Size p)` constraints whenever
--- the dynamic size is required. Right now the type class 
--- is set up with a default implementation that will add 
--- this constraint if the `size` function is not 
+-- the dynamic size is required. Right now the type class
+-- is set up with a default implementation that will add
+-- this constraint if the `size` function is not
 -- already provided.-
 
 ----------------------------------------------
@@ -114,6 +114,9 @@ instance SubstVar Exp where
   var :: Fin n -> Exp n
   var = Var
 
+instance Shiftable Exp where
+  shift = shiftFromApplyE @Exp
+
 instance Subst Exp Exp where
   applyE :: Env Exp n m -> Exp n -> Exp m
   applyE r (Var x) = applyEnv r x
@@ -121,6 +124,9 @@ instance Subst Exp Exp where
   applyE r (App e1 e2) = App (applyE r e1) (applyE r e2)
   applyE r (Con s) = Con s
   applyE r (Case e brs) = Case (applyE r e) (map (applyE r) brs)
+
+instance Shiftable Branch where
+  shift = shiftFromApplyE @Exp
 
 instance Subst Exp Branch where
   applyE :: Env Exp n m -> Branch n -> Branch m
@@ -221,7 +227,7 @@ instance Show (Pat m) where
   showsPrec :: Int -> Pat m -> String -> String
   showsPrec d PVar = showString "V"
   showsPrec d (PHead p) = showsPrec d p
-  
+
 instance Show (ConApp m) where
   showsPrec d (PApp p1 p2) =
     showParen (d > 0) $
@@ -246,10 +252,10 @@ instance Show (Branch n) where
 
 --------------------------------------------------------------
 
--- We would like to derive equality for patterns, i.e. 
--- 
+-- We would like to derive equality for patterns, i.e.
+--
 --     deriving instance (Eq (Pat m n))
--- 
+--
 -- but because of the application case, this process fails.
 -- We don't know that each subpattern binds the same
 -- number of variables!
