@@ -43,8 +43,8 @@ gapplyE = applyOpt (\s x -> to1 $ gsubst s (from1 x))
 -- Environment representation as finite function
 ------------------------------------------------------------------------------
 
-newtype Env (a :: Nat -> Type) (n :: Nat) (m :: Nat) = 
-    Env { applyEnv :: Fin n -> a m } 
+newtype Env (a :: Nat -> Type) (n :: Nat) (m :: Nat) =
+    Env { applyEnv :: Fin n -> a m }
 
 ------------------------------------------------------------------------------
 -- Application
@@ -69,7 +69,7 @@ zeroE :: Env v Z n
 zeroE = Env $ \ x -> case x of {}
 {-# INLINEABLE zeroE #-}
 
--- make the bound bigger, on the right, but do not change any indices. 
+-- make the bound bigger, on the right, but do not change any indices.
 -- this is an identity function
 weakenER :: forall m v n. (SubstVar v) => SNat m -> Env v n (n + m)
 weakenER m = Env $ \x -> var (Fin.weakenFinRight m x)
@@ -89,8 +89,8 @@ shiftNE m = Env $ \x -> var (Fin.shiftN m x)
 -- | `cons` -- extend an environment with a new mapping
 -- for index '0'. All existing mappings are shifted over.
 (.:) :: SubstVar v => v m -> Env v n m -> Env v (S n) m
-ty .: s = Env $ \y -> case y of 
-                 FZ -> ty 
+ty .: s = Env $ \y -> case y of
+                 FZ -> ty
                  FS x -> applyEnv s x
 {-# INLINEABLE (.:) #-}
 

@@ -25,7 +25,7 @@ data Exp (n :: Nat) where
     (Bind Exp Exp n) ->
     Exp n
   LetRec ::
-    -- | "let rec x = e1 in e2" where x is bound in both e1 and e2  
+    -- | "let rec x = e1 in e2" where x is bound in both e1 and e2
     Bind Exp Exp n ->
     Bind Exp Exp n ->
     Exp n
@@ -152,6 +152,8 @@ instance SubstVar Exp where
 -- via recursion. The library includes a type class instance for
 -- the Bind type which handles the variable lifting needed under
 -- the binder.
+instance Shiftable Exp where
+  shift = shiftFromApplyE @Exp
 instance Subst Exp Exp where
   applyE :: Env Exp n m -> Exp n -> Exp m
   applyE r (Var x) = applyEnv r x
@@ -161,6 +163,8 @@ instance Subst Exp Exp where
   applyE r (LetRec e1 e2) = LetRec (applyE r e1) (applyE r e2)
   applyE r (LetTele e) = LetTele (applyE r e)
 
+instance Shiftable Tele where
+  shift = shiftFromApplyE @Exp
 instance Subst Exp Tele where
   applyE r (Body e) = Body (applyE r e)
   applyE r (LetStar e1 e2) = LetStar (applyE r e1) (applyE r e2)

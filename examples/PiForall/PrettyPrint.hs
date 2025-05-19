@@ -1,5 +1,5 @@
 -- | A Pretty Printer.
-module PiForall.PrettyPrint (Display (..), DisplayM (..), D (..), SourcePos, PP.Doc, pp, disp, debug, DispInfo, 
+module PiForall.PrettyPrint (Display (..), DisplayM (..), D (..), SourcePos, PP.Doc, pp, disp, debug, DispInfo,
 initDI, debugDI, ppM, debugM, scopedDisplay, scopedDebug) where
 
 import Control.Monad.Reader (MonadReader (ask, local), asks)
@@ -22,7 +22,7 @@ import AutoEnv.Bind.Scoped (TeleList(..))
 import qualified AutoEnv.Bind.Scoped as Scoped
 import AutoEnv.Bind.Pat (PatList(..))
 import qualified AutoEnv.Bind.Pat as Pat
-import AutoEnv.MonadScoped
+import AutoEnv.MonadNamed
 
 import PiForall.Syntax
 
@@ -50,12 +50,12 @@ pp p = show (disp p initDI)
 
 -- | Convenience entry point for debugging
 debug :: Display Z d => d -> String
-debug p = show (disp p debugDI) 
+debug p = show (disp p debugDI)
 
 disp :: Display Z d => d -> DispInfo -> Doc e
 disp x = runScopedReaderT (display x) emptyScope
 
--- Monadic versions of the above, for the case when there 
+-- Monadic versions of the above, for the case when there
 -- are already names in scope
 
 debugM :: (MonadScoped LocalName m, Display n d) => d -> m n String
@@ -68,7 +68,7 @@ dispMonadScoped :: (MonadScoped LocalName m) => Display n d => d -> DispInfo -> 
 dispMonadScoped x di = do
   s <- scope
   let p = runScopedReaderT (display x) s
-  return (p di) 
+  return (p di)
 
 scopedDisplay :: Display n d => d -> Scope LocalName n -> Doc e
 scopedDisplay x s = runScopedReaderT (display x) s initDI
@@ -115,7 +115,7 @@ debugDI = initDI{showLongNames = True, showAnnots=True}
 
 instance Display n (D n) where
   display (DS s) = return $ PP.pretty s
-  display (DD a) = PP.nest 2 <$> display a 
+  display (DD a) = PP.nest 2 <$> display a
   display (DC c) = display c
   display (DL a) = do
     ds <- mapM display a
@@ -150,7 +150,7 @@ instance Display Z Module where
 
 instance Display Z ModuleImport where
   display (ModuleImport i) = do
-     di <- display i 
+     di <- display i
      pure $ PP.pretty "import" <+> di
 
 
@@ -177,7 +177,7 @@ instance Display Z DataDef where
     display (DataDef (params :: Telescope n Z) sort constructors) = do
         dp <- display params
         ds <- display sort
-        dc <- case axiomPlusZ @n of 
+        dc <- case axiomPlusZ @n of
                 Refl -> push params $ mapM display constructors
         pure $ PP.nest 2 (PP.vcat
             (dp
@@ -210,8 +210,8 @@ instance Display n (Telescope m n) where
 
 instance Display n (Refinement Term n) where
   display (Refinement r) = do
-    let d (x,tm) = do 
-                      dx <- display (Var x) 
+    let d (x,tm) = do
+                      dx <- display (Var x)
                       dt <- display tm
                       return $ dx <+> PP.pretty "=" <+> dt
     dr <- mapM d (Map.toList r)
@@ -221,13 +221,13 @@ instance Display n (Refinement Term n) where
 -- This is Context n
 instance SNatI m => Display n (Env Term m n) where
   display r = do
-    let t = tabulate r 
+    let t = tabulate r
     let d (x,tm) = do
-                    dt <- display tm 
+                    dt <- display tm
                     return $ PP.pretty (show x) <+> PP.pretty "~>" <+> dt
     dt <- mapM d t
     return $ PP.sep (PP.punctuate PP.comma dt)
-      
+
 
 
 -------------------------------------------------------------------------

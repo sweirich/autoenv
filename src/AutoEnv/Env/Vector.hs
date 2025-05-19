@@ -48,11 +48,11 @@ applyOpt f = f
 ------------------------------------------------------------------------------
 -- Environment representation
 ------------------------------------------------------------------------------
-data Env (a :: Nat -> Type) (n :: Nat) (m :: Nat) = Env { 
-    vec :: Vec n (a m), 
+data Env (a :: Nat -> Type) (n :: Nat) (m :: Nat) = Env {
+    vec :: Vec n (a m),
     size :: SNat n
 }
-  
+
 -- >>> :info Vec
 
 
@@ -65,7 +65,7 @@ zeroE :: Env v Z n
 zeroE = Env VNil SZ
 {-# INLINEABLE zeroE #-}
 
--- make the bound bigger, on the right, but do not change any indices. 
+-- make the bound bigger, on the right, but do not change any indices.
 -- this is an identity function
 weakenER :: forall m v n. (SNatI n, SubstVar v) => SNat m -> Env v n (n + m)
 weakenER m = Env (Vec.tabulate (var . Fin.weakenFinRight m)) snat
@@ -95,12 +95,12 @@ f .>> g = Env (fmap (applyE g) (vec f)) (size f)
 
 -- | inverse of `cons` -- remove the first mapping
 tail :: Env v (S n) m -> Env v n m
-tail (Env (_ ::: vs) n) = Env vs (Lib.pred n) 
+tail (Env (_ ::: vs) n) = Env vs (Lib.pred n)
 
 -- | modify an environment so that it can go under
 -- a binder
 up :: (SubstVar v, SNatI n) => Env v m n -> Env v (S m) (S n)
-up e = 
+up e =
   withSNat (size e) $
      var Fin.f0 .: (e .>> shiftNE s1)
 {-# INLINEABLE up #-}

@@ -1,9 +1,9 @@
 cabal-version:  2.2
 name:           autoenv
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/project-cis5520#readme>
-homepage:       https://github.com/githubuser/project-cis5520#readme
-bug-reports:    https://github.com/githubuser/project-cis5520/issues
+description:    Please see the README on GitHub at <https://github.com/sweirich/autoenv>
+homepage:       https://github.com/sweirich/autoenv
+bug-reports:    https://github.com/sweirich/autoenv/issues
 author:         Author name here
 maintainer:     example@example.com
 copyright:      2022 Author name here
@@ -15,25 +15,9 @@ extra-source-files:
     ChangeLog.md
 
 common common-stanza
-  ghc-options:         
-     -Wno-type-defaults 
+  ghc-options:
+     -Wno-type-defaults
      -fwarn-incomplete-patterns
-  build-depends:
-      base >=4.15
-    , HUnit 
-    , QuickCheck
-    , containers
-    , filepath
-    , parsec
-    , prettyprinter
-    , network
-    , directory
-    , random
-    , mtl
-    , brick
-    , vty
-    , fin >= 0.3
-    , vec
   default-language:
     GHC2021
   default-extensions:
@@ -48,55 +32,82 @@ common common-stanza
     , UndecidableInstances
     , FunctionalDependencies
     , ViewPatterns
-    
+
 
 library
   import:
       common-stanza
+  build-depends:
+      base >=4.15
+    , containers
+    , mtl
+    , QuickCheck
+    , fin >= 0.3
+    , vec
   exposed-modules:
-        AutoEnv
-      , AutoEnv.Classes
-      , AutoEnv.Context
-      , AutoEnv.Lib
-      , AutoEnv.Env
-      , AutoEnv.Env.Internal
-      , AutoEnv.Env.InternalStrict
-      , AutoEnv.Env.InternalLazy
-      , AutoEnv.Env.InternalA
-      , AutoEnv.Env.InternalB
-      , AutoEnv.Env.Functional
-      , AutoEnv.Env.Vector
-      , AutoEnv.MonadScoped
-      , AutoEnv.Bind.Single
-      , AutoEnv.Bind.Local
-      , AutoEnv.Bind.PatN
-      , AutoEnv.Bind.Pat
-      , AutoEnv.Bind.Scoped
-      , Data.SNat
-      , Data.Fin
-      , Data.Vec
-      , Data.LocalName    
-      , Data.Scoped.List  
-      , LC
-      , LCLet
-      , PTS
-      , Pat
-      , DepMatch
-      , NBE
-      , PiForall.Arbitrary
-      , PiForall.Syntax
-      , PiForall.ConcreteSyntax
-      , PiForall.Environment
-      , PiForall.Equal
-      , PiForall.PrettyPrint
-      , PiForall.LayoutToken
-      , PiForall.Parser
-      , PiForall.ScopeCheck
-      , PiForall.Modules
-      , PiForall.TypeCheck
-  hs-source-dirs:
-      src
-      , examples
+      AutoEnv
+    , AutoEnv.Classes
+    , AutoEnv.Context
+    , AutoEnv.Lib
+    , AutoEnv.Env
+    , AutoEnv.Env.Internal
+    , AutoEnv.Env.InternalStrict
+    , AutoEnv.Env.InternalLazy
+    , AutoEnv.Env.InternalA
+    , AutoEnv.Env.InternalB
+    , AutoEnv.Env.Functional
+    , AutoEnv.Env.Vector
+    , AutoEnv.Scope
+    , AutoEnv.MonadNamed
+    , AutoEnv.MonadScoped
+    , AutoEnv.Bind.Single
+    , AutoEnv.Bind.Local
+    , AutoEnv.Bind.PatN
+    , AutoEnv.Bind.Pat
+    , AutoEnv.Bind.Scoped
+    , Data.SNat
+    , Data.Fin
+    , Data.Vec
+    , Data.LocalName
+    , Data.Scoped.Const
+    , Data.Scoped.List
+    , Data.Scoped.Maybe
+    , Data.Scoped.Telescope
+  hs-source-dirs: src
 
-
-
+library autoenv-examples
+  import:
+    common-stanza
+  build-depends:
+    base >=4.15
+    , autoenv
+    , mtl
+    , HUnit
+    , QuickCheck
+    , filepath
+    , parsec
+    , prettyprinter
+    , containers
+    , network
+    , directory
+    , random
+    , mtl
+  exposed-modules:
+      LC
+    , LCLet
+    , PTS
+    , Pat
+    , DepMatch
+    , NBE
+    , PiForall.Arbitrary
+    , PiForall.Syntax
+    , PiForall.ConcreteSyntax
+    , PiForall.Environment
+    , PiForall.Equal
+    , PiForall.PrettyPrint
+    , PiForall.LayoutToken
+    , PiForall.Parser
+    , PiForall.ScopeCheck
+    , PiForall.Modules
+    , PiForall.TypeCheck
+  hs-source-dirs: examples
